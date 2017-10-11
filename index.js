@@ -1,6 +1,5 @@
 var request = require('request');
 var log4js = require('log4js');
-//var pm = require('ep_etherpad-lite/node/db/PadManager');
 
 log4js.configure({
     appenders: { authorize: { type: 'file', filename: 'ep_oidc_authorize.log' } },
@@ -43,14 +42,19 @@ exports.authorize = function (hook_name, context, cb) {
               //Success
               logger.debug("ep_oidc_authorize: Authorize returned " + res.statusCode + " " + res.statusMessage);
 
-              if (res.statusCode == 200)
+
+              if (res.statusCode == 200 && body.redirectUrl == null){
                   return cb([true]);
+              }
+              //Authorize created a new pad on the backend, redirect to pad url given
+              else if (res.statusCode == 200 && body.redirectUrl != null) {
+                  context.res.redirect(body.redirectUrl);
+              }
               else
               {
-                  var body = "<h1>Unauthorized access.<h1>";
-                  context.res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-                  context.res.end(body);
-                  //return cb([false]);
+                  //Return JSON response for unauthorized access
+                  context.res.writeHead(200, { "Content-Type": "application/json" });
+                  context.res.end(JSON.stringify({ status: "Permission denied." }));
               }
                   
                   
